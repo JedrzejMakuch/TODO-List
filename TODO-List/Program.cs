@@ -1,9 +1,12 @@
 ﻿using LINQtoCSV;
 using Marten.Linq.Parsing;
 using TODO_List;
+using TODO_List.Service;
+
 
 
 var QuestList = new List<Quest>();
+
 
 Console.WriteLine(@"Witaj w TODO Liscie zadan.
 Komendy:
@@ -15,113 +18,93 @@ export nazwa_pliku - eksportuj plik w formacie .csv,
 import nazwa_pliku - importuj plik w formacie .csv,
 exit - zamyka program.");
 Console.WriteLine();
-  var Id = 0;
-  while (true)
-  {
+var Id = 0;
+
+while (true)
+{
     var command = Console.ReadLine().ToLower();
-    if (command == "show")
+    var commandArrWithSplit = command.Split(' ');
+    var csvDescription = new CsvFileDescription
     {
-        Console.WriteLine("Lista zadan:");
-        if (QuestList.Count == 0)
-            Console.WriteLine("Lista zadan jest aktualnie pusta.");
-        
-        foreach (var quest in QuestList)
-        {
-            if (quest.Status == "Zakonczony")
-                Console.WriteLine(@"Zadanie: Nazwa: {0}, Data utworzenia: {1}, Status: {2}, Data ukończenia: {3}", quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status, quest.DateOfEnd.Value.ToShortDateString());
-            else
-                Console.WriteLine(@"Zadanie: Nazwa: {0}, Data utworzenia: {1}, Status: {2}", quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status);
-        }
+        FirstLineHasColumnNames = true,
+    };
+    var csvContext = new CsvContext();
+    string statusFinish = "Zakonczony";
+    string statusNew = "Nowy";
+    string statusInProgres = "W trakcie";
+
+
+    if (command.StartsWith("show"))
+    {
+        Service.ShowList(QuestList);
     }
-    else if (command.Contains("add"))
+    else if (command.StartsWith("add"))
     {
-        var commandArr = command.Split(" ");
-        QuestList.Add(new Quest { Id = Id++, DateOfStart = DateTime.Now, Name = commandArr[1], Status = "Nowy" });
-        Console.WriteLine("Zadanie zostalo dodane.");
+        Id = Service.AddNewTask(QuestList, Id, commandArrWithSplit);
     }
-    else if (command.Contains("start"))
+    else if (command.StartsWith("start"))
     {
-        var commandArr = command.Split(" ");
-        bool containsItem = QuestList.Any(x => x.Id == (Convert.ToInt32(commandArr[1])-1));
-        if (!containsItem)
+        var commandInt = int.TryParse(commandArrWithSplit[1], out int result);
+        bool containsItem = QuestList.Any(x => x.Id == result - 1);
+
+        if (!containsItem || QuestList.ElementAt(result - 1).Status == statusFinish || QuestList.ElementAt(result - 1).Status == statusInProgres)
         {
-            Console.WriteLine(new Exception("Niewlasciwe Id zadania."));
+            Service.Error();
             continue;
         }
-        if(QuestList.ElementAt(Convert.ToInt32(commandArr[1]) - 1).Status == "Zakonczony")
-        {
-            Console.WriteLine(new Exception("Zadanie zostalo zakonczone wczesniej."));
-        } else
-        {
-            QuestList.ElementAt(Convert.ToInt32(commandArr[1]) - 1).Status = "W trakcie";
-            Console.WriteLine("Zadanie zostalo rozpoczete.");
-        }
-        
+        else
+            Service.Start(QuestList, commandArrWithSplit);
     }
-    else if (command.Contains("complete"))
+    else if (command.StartsWith("complete"))
     {
-        var commandArr = command.Split(" ");
-        bool containsItem = QuestList.Any(x => x.Id == (Convert.ToInt32(commandArr[1]) - 1));
-        if (!containsItem || string.IsNullOrEmpty(commandArr[1]))
+        var commandInt = int.TryParse(commandArrWithSplit[1], out int result);
+        bool containsItem = QuestList.Any(x => x.Id == result - 1);
+
+        if (!containsItem || string.IsNullOrEmpty(commandArrWithSplit[1]) || QuestList.ElementAt(result - 1).Status == statusNew || 
+            QuestList.ElementAt(result - 1).Status == statusFinish)
         {
-            Console.WriteLine(new Exception("Niewlasciwe Id zadania."));
+            Service.Error();
             continue;
         }
-        if (QuestList.ElementAt(Convert.ToInt32(commandArr[1]) - 1).Status == "Nowy")
-        {
-            Console.WriteLine(new Exception("Zadanie, nie zostalo jeszcze rozpoczete."));
-        } else
-        {
-            QuestList.ElementAt(Convert.ToInt32(commandArr[1]) - 1).Status = "Zakonczony";
-            QuestList.ElementAt(Convert.ToInt32(commandArr[1]) - 1).DateOfEnd = DateTime.Now;
-            Console.WriteLine("Zadanie zostalo zakonczone.");
-        }
-
-    }else if(command.Contains("export"))
-    {
-        var commandArr = command.Split(" ");
-        if (string.IsNullOrEmpty(commandArr[1]))
-        {
-            Console.WriteLine(new Exception("Niewlasciwa nazwa pliku zadania."));
-            continue;
-        }
-        var csvDescription = new CsvFileDescription
-        {
-            FirstLineHasColumnNames = true,
-        };
-
-        var csvContext = new CsvContext();
-        csvContext.Write(QuestList, commandArr[1] + ".csv", csvDescription);
-        Console.WriteLine("Plik w formacie csv, o nazwie '{0}' zostal exportowany", commandArr[1]);
-    } else if(command.Contains("import")) 
-    {
-        var commandArr = command.Split(" ");
-        if (!File.Exists(commandArr[1] + ".csv"))
-        {
-            Console.WriteLine(new Exception("Niewlasciwa nazwa pliku"));
-            continue;
-        }
-
-        var csvDescription = new CsvFileDescription
-        {
-            FirstLineHasColumnNames = true,
-        };
-
-        var csvContext = new CsvContext();
-        var importwany = csvContext.Read<Quest>(commandArr[1] + ".csv", csvDescription);
-        QuestList.AddRange(importwany);
-        Console.WriteLine("Plik w formacie csv, o nazwie '{0}' zostal importowany", commandArr[1]);
+        else
+            Service.Complete(QuestList, commandArrWithSplit);
     }
-    else if(command == "exit")
+    else if (command.StartsWith("export"))
     {
-        Console.WriteLine("Milego dnia.");
-        Environment.Exit(0);
+        if (string.IsNullOrEmpty(commandArrWithSplit[1]))
+        {
+            Service.Error();
+            continue;
+        }
+        Service.Export(QuestList, commandArrWithSplit, csvDescription, csvContext);
+    }
+    else if (command.StartsWith("import"))
+    {
+        if (!File.Exists(commandArrWithSplit[1] + ".csv"))
+        {
+            Service.Error();
+            continue;
+        }
+        Service.Import(QuestList, commandArrWithSplit, csvDescription, csvContext);
+    }
+    else if (command == "exit")
+    {
+        Service.Exit();
     }
     else
-        Console.WriteLine(new Exception("Niewlasciwa komenda."));
-    
-  }
+        Service.Error();
+}
 
 
 
-     
+
+
+
+
+
+
+
+
+
+
+
