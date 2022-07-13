@@ -17,7 +17,7 @@ namespace TODO_List.Service
             QuestList = new List<Quest>();
         }
 
-        public static void ShowList(List<Quest> QuestList)
+        public void ShowList(List<Quest> QuestList)
         {
             Console.WriteLine("Lista zadan:");
             if (QuestList.Count == 0)

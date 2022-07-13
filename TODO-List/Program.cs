@@ -23,6 +23,7 @@ var Id = 0;
 while (true)
 {
     var command = Console.ReadLine().ToLower();
+
     var commandArrWithSplit = command.Split(' ');
     var csvDescription = new CsvFileDescription
     {
@@ -33,10 +34,17 @@ while (true)
     string statusNew = "Nowy";
     string statusInProgres = "W trakcie";
 
+    var service = new Service();
+
+    //var shortCommand = ExtractCommand(command);
+    //switch (shortCommand)
+    //{
+        
+    //}
 
     if (command.StartsWith("show"))
     {
-        Service.ShowList(QuestList);
+        service.ShowList(QuestList);
     }
     else if (command.StartsWith("add"))
     {
@@ -95,16 +103,8 @@ while (true)
         Service.Error();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+string ExtractCommand(string input)
+{
+    var splitted = input.Split(' ');
+    return splitted[0];
+}
