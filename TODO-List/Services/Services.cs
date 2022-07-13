@@ -11,66 +11,154 @@ namespace TODO_List.Service
 {
     public class Service 
     {
+
         public List<Quest> QuestList { get; set; }
+
         public Service()
         {
-            QuestList = new List<Quest>();
+           QuestList = new List<Quest>();
+        }
+
+        public CsvContext GetCsvContext()
+        {
+            var csvContext = new CsvContext();
+            return csvContext;
+        }
+
+        public CsvFileDescription GetCsvFileDescription()
+        {
+            var fileDescription = new CsvFileDescription()
+            {
+                FirstLineHasColumnNames = true,
+            };
+            return fileDescription;
         }
 
         public void ShowList(List<Quest> QuestList)
         {
             Console.WriteLine("Lista zadan:");
             if (QuestList.Count == 0)
-                Error();
+                Console.WriteLine("Lista jest aktualnie pusta");
 
             foreach (var quest in QuestList)
             {
-                if (quest.Status == "Zakonczony")
-                    Console.WriteLine(@"Zadanie: Nazwa: {0}, Data utworzenia: {1}, Status: {2}, Data ukończenia: {3}", quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status, quest.DateOfEnd.Value.ToShortDateString());
+                if (quest.Status == StatusFinish())
+                    Console.WriteLine(@"Zadanie {0}: Nazwa: {1}, Data utworzenia: {2}, Status: {3}, Data ukończenia: {4}", quest.Id, quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status, quest.DateOfEnd.Value.ToShortDateString());
                 else
-                    Console.WriteLine(@"Zadanie: Nazwa: {0}, Data utworzenia: {1}, Status: {2}", quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status);
+                    Console.WriteLine(@"Zadanie {0}: Nazwa: {1}, Data utworzenia: {2}, Status: {3}", quest.Id, quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status);
             }
         }
-        public static int AddNewTask(List<Quest> QuestList, int Id, string[] commandArrWithSplit)
+
+        public void AddNewTask(string commandWithSplit, List<Quest> QuestList)
         {
-            QuestList.Add(new Quest { Id = Id++, DateOfStart = DateTime.Now, Name = commandArrWithSplit[1], Status = "Nowy" });
-            Console.WriteLine("Zadanie zostalo dodane.");
-            return Id;
+            if (!string.IsNullOrWhiteSpace(commandWithSplit))
+            {
+                var New = new Quest
+                {
+                    Id = QuestList.Count + 1,
+                    Name = commandWithSplit,
+                    DateOfStart = DateTime.Now,
+                    Status = StatusNew()
+                };
+
+                QuestList.Add(New);
+                Console.WriteLine("Zadanie {0} zostalo dodane.", New.Id);
+            } else
+                Error();
+            
         }
-        public static void Start(List<Quest> QuestList, string[] commandArrWithSplit)
+
+        public void Start(List<Quest> QuestList, string[] commandArrWithSplit)
         {
-            QuestList.ElementAt(Convert.ToInt32(commandArrWithSplit[1]) - 1).Status = "W trakcie";
-            Console.WriteLine("Zadanie zostalo rozpoczete.");
+            var Id = int.TryParse(commandArrWithSplit[1], out int result);
+            if (Id && !string.IsNullOrEmpty(commandArrWithSplit[1]) && result <= QuestList.Count && result > 0)
+            {
+                foreach (var quest in QuestList)
+                {
+                    if (result == quest.Id)
+                    {
+                        if (quest.Status == StatusInProgres())
+                        {
+                            Console.WriteLine("Zadanie juz jest rozpoczete.");
+                        }else
+                        {
+                                quest.Status = StatusInProgres();
+                                Console.WriteLine("Zadanie {0}, zostalo rozpoczete.", quest.Id);
+                        } 
+                    }
+                }
+            }
+            else
+                Console.WriteLine("Zadanie z podanym Id: {0}, nie istnieje.", commandArrWithSplit[1]);
         }
-        public static void Complete(List<Quest> QuestList, string[] commandArrWithSplit)
+
+        public void Complete(List<Quest> QuestList, string[] commandArrWithSplit)
         {
-            QuestList.ElementAt(Convert.ToInt32(commandArrWithSplit[1]) - 1).Status = "Zakonczony";
-            QuestList.ElementAt(Convert.ToInt32(commandArrWithSplit[1]) - 1).DateOfEnd = DateTime.Now;
-            Console.WriteLine("Zadanie zostalo zakonczone.");
+            var Id = int.TryParse(commandArrWithSplit[1], out int result);
+            if (Id && !string.IsNullOrEmpty(commandArrWithSplit[1]) && result <= QuestList.Count && result > 0)
+            {
+                foreach (var quest in QuestList)
+                {
+                    if (result == quest.Id)
+                    {
+                        if (quest.Status == StatusFinish())
+                        {
+                            Console.WriteLine("Zadanie juz zostalo zakonczone.");
+                        } else if (quest.Status == StatusNew())
+                        {
+                            Console.WriteLine("Nie mozna zakonczyc nie rozpoczetego zadania.");
+                        } else
+                        {
+                            quest.Status = StatusFinish();
+                            Console.WriteLine("Zadanie {0}, zostalo zakonczone.", quest.Id);
+                        }
+                    }
+                }
+            }
+            else
+                Console.WriteLine("Zadanie z podanym Id: {0}, nie istnieje.", commandArrWithSplit[1]);
         }
-        public static void Export(List<Quest> QuestList, string[] commandArrWithSplit, CsvFileDescription csvDescription, CsvContext csvContext)
+
+        public void Export(List<Quest> QuestList, string[] commandArrWithSplit, CsvFileDescription csvDescription, CsvContext csvContext)
         {
             csvContext.Write(QuestList, commandArrWithSplit[1] + ".csv", csvDescription);
             Console.WriteLine("Plik w formacie csv, o nazwie '{0}' zostal exportowany", commandArrWithSplit[1]);
         }
 
-        public static void Import(List<Quest> QuestList, string[] commandArrWithSplit, CsvFileDescription csvDescription, CsvContext csvContext)
+        public void Import(List<Quest> QuestList, string[] commandArrWithSplit, CsvFileDescription csvDescription, CsvContext csvContext)
         {
             var importwany = csvContext.Read<Quest>(commandArrWithSplit[1] + ".csv", csvDescription);
             QuestList.AddRange(importwany);
             Console.WriteLine("Plik w formacie csv, o nazwie '{0}' zostal importowany", commandArrWithSplit[1]);
         }
 
-        public static void Error()
+        public void Error()
         {
-            Console.WriteLine(new Exception("Niewslasciwa komeda lub niewlasciwe dzialanie."));
+            Console.WriteLine("Niewlasciwa komeda lub niewlasciwe dzialanie.");
         }
-        public static void Exit()
+
+        public void Exit()
         {
             Console.WriteLine("Milego dnia.");
             Environment.Exit(0);
         }
 
+        public string ExtractCommand(string command)
+        {
+            var input = command.Split(' ');
+            return input[0];
+        }
+        public string StatusInProgres()
+        {
+            return "W trakcie";
+        }
+        public string StatusFinish()
+        {
+            return "Zakonczony";
+        }
+        public string StatusNew()
+        {
+            return "Nowy";
+        }
     }
-
 }
