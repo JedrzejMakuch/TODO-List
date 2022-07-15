@@ -1,10 +1,6 @@
-﻿using LINQtoCSV;
-using Marten.Linq.Parsing;
-using TODO_List;
-using TODO_List.Service;
+﻿using TODO_List.Service;
 
-var QuestList = new List<Quest>();
-
+var service = new Service();
 Console.WriteLine(@"Witaj w TODO Liscie zadan.
 Komendy:
 show - pokaz liste,
@@ -20,43 +16,56 @@ while (true)
 {
     var command = Console.ReadLine().ToLower();
     var commandArrWithSplit = command.Split(' ');
-    var service = new Service();
     var shortCommand = service.ExtractCommand(command);
 
     switch (shortCommand)
     {
         case "show":
-            service.ShowList(QuestList);
+            service.ShowList();
             break;
 
         case "add":
-            service.AddNewTask(commandArrWithSplit[1], QuestList);
+            service.AddNewTask(commandArrWithSplit, command);
             break;
 
         case "start":
-            service.Start(QuestList, commandArrWithSplit);
+            service.Start(commandArrWithSplit, command);
             break;
 
         case "complete":
-            service.Complete(QuestList, commandArrWithSplit);
+            service.Complete(commandArrWithSplit, command);
             break;
 
         case "export":
-            if (string.IsNullOrEmpty(commandArrWithSplit[1]))
+            if (command.Length == 6)
             {
                 service.Error();
-                continue;
             }
-            service.Export(QuestList, commandArrWithSplit, service.GetCsvFileDescription(), service.GetCsvContext());
+            else
+            {
+                if (string.IsNullOrWhiteSpace(commandArrWithSplit[1]))
+                {
+                    service.Error();
+                    continue;
+                }
+                service.Export(commandArrWithSplit);
+            }
             break;
-
+            
         case "import":
-            if (!File.Exists(commandArrWithSplit[1] + ".csv"))
+            if (command.Length == 6)
             {
                 service.Error();
-                continue;
             }
-            service.Import(QuestList, commandArrWithSplit, service.GetCsvFileDescription(), service.GetCsvContext());
+            else
+            {
+                if (!File.Exists(commandArrWithSplit[1] + ".csv"))
+                {
+                    service.Error();
+                    continue;
+                }
+                service.Import(commandArrWithSplit);
+            }
             break;
 
         case "exit":
