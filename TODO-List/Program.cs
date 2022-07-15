@@ -15,25 +15,24 @@ Console.WriteLine();
 while (true)
 {
     var command = Console.ReadLine().ToLower();
-    var commandArrWithSplit = command.Split(' ');
-    var shortCommand = service.ExtractCommand(command);
+    var splitted = Service.SplitCommand(command);
 
-    switch (shortCommand)
+    switch (splitted[0])
     {
         case "show":
             service.ShowList();
             break;
 
         case "add":
-            service.AddNewTask(commandArrWithSplit, command);
+            service.AddNewTask(splitted);
             break;
 
         case "start":
-            service.Start(commandArrWithSplit, command);
+            service.Start(command);
             break;
 
         case "complete":
-            service.Complete(commandArrWithSplit, command);
+            service.Complete( command);
             break;
 
         case "export":
@@ -41,15 +40,15 @@ while (true)
             {
                 service.Error();
             }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(commandArrWithSplit[1]))
-                {
-                    service.Error();
-                    continue;
-                }
-                service.Export(commandArrWithSplit);
-            }
+            //else
+            //{
+            //    if (string.IsNullOrWhiteSpace(commandArrWithSplit[1]))
+            //    {
+            //        service.Error();
+            //        continue;
+            //    }
+            //    service.Export(commandArrWithSplit);
+            //}
             break;
             
         case "import":
@@ -57,23 +56,23 @@ while (true)
             {
                 service.Error();
             }
-            else
-            {
-                if (!File.Exists(commandArrWithSplit[1] + ".csv"))
-                {
-                    service.Error();
-                    continue;
-                }
-                service.Import(commandArrWithSplit);
-            }
+            //else
+            //{
+            //    if (!File.Exists(commandArrWithSplit[1] + ".csv"))
+            //    {
+            //        service.Error();
+            //        continue;
+            //    }
+            //    service.Import(commandArrWithSplit);
+            //}
             break;
 
         case "exit":
-            service.Exit();
+            Service.Exit();
             break;
 
         default:
-            service.Error();
+            Service.Error();
             break;
     }
 }
