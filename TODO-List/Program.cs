@@ -28,43 +28,19 @@ while (true)
             break;
 
         case "start":
-            service.Start(command);
+            service.Start(splitted);
             break;
 
         case "complete":
-            service.Complete( command);
+            service.Complete(splitted);
             break;
 
         case "export":
-            if (command.Length == 6)
-            {
-                service.Error();
-            }
-            //else
-            //{
-            //    if (string.IsNullOrWhiteSpace(commandArrWithSplit[1]))
-            //    {
-            //        service.Error();
-            //        continue;
-            //    }
-            //    service.Export(commandArrWithSplit);
-            //}
+            service.Export(splitted);
             break;
-            
+
         case "import":
-            if (command.Length == 6)
-            {
-                service.Error();
-            }
-            //else
-            //{
-            //    if (!File.Exists(commandArrWithSplit[1] + ".csv"))
-            //    {
-            //        service.Error();
-            //        continue;
-            //    }
-            //    service.Import(commandArrWithSplit);
-            //}
+            service.Import(splitted);
             break;
 
         case "exit":
