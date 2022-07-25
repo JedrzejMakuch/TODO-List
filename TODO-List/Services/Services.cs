@@ -35,7 +35,7 @@ namespace TODO_List.Service
 
             foreach (var quest in QuestList)
             {
-                if (quest.Status == StatusFinish())
+                if (quest.Status == QuestStatus.Completed)
                     Console.WriteLine(@"Zadanie {0}: Nazwa: {1}, Data utworzenia: {2}, Status: {3}, Data ukończenia: {4}", quest.Id, quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status, quest.DateOfEnd.Value.ToShortDateString());
                 else
                     Console.WriteLine(@"Zadanie {0}: Nazwa: {1}, Data utworzenia: {2}, Status: {3}", quest.Id, quest.Name, quest.DateOfStart.ToShortDateString(), quest.Status);
@@ -51,7 +51,7 @@ namespace TODO_List.Service
                     Id = QuestList.Count + 1,
                     Name = splitted[1],
                     DateOfStart = DateTime.Now,
-                    Status = StatusNew()
+                    Status = QuestStatus.New
                 };
 
                 QuestList.Add(New);
@@ -70,13 +70,13 @@ namespace TODO_List.Service
                 if (Id && result <= QuestList.Count && result > 0)
                 {
                     var quest = QuestList.Single(q => q.Id == result);
-                    if (quest.Status == StatusInProgres() || quest.Status == StatusFinish())
+                    if (quest.Status == QuestStatus.InProgres || quest.Status == QuestStatus.Completed)
                     {
                         Console.WriteLine("Zadanie juz jest rozpoeczete, lub zostalo juz zakonczone.");
                     }
                     else
                     {
-                        quest.Status = StatusInProgres();
+                        quest.Status = QuestStatus.InProgres;
                         quest.DateOfEnd = DateTime.Now;
                         Console.WriteLine("Zadanie {0}, zostalo rozpoczete.", quest.Id);
                     }
@@ -98,13 +98,13 @@ namespace TODO_List.Service
                 if (Id && result <= QuestList.Count && result > 0)
                 {
                     var quest = QuestList.Single(q => q.Id == result);
-                    if (quest.Status == StatusFinish() || quest.Status == StatusNew())
+                    if (quest.Status == QuestStatus.Completed || quest.Status == QuestStatus.New)
                     {
                         Console.WriteLine("Zadanie juz zostalo zakonczone, lub nie zostalo rozpoczete.");
                     }
                     else
                     {
-                        quest.Status = StatusFinish();
+                        quest.Status = QuestStatus.Completed;
                         quest.DateOfEnd = DateTime.Now;
                         Console.WriteLine("Zadanie {0}, zostalo zakonczone.", quest.Id);
                     }
@@ -127,7 +127,6 @@ namespace TODO_List.Service
                 csvContext.Write(QuestList, splitted[1] + ".csv", csvDescription);
                 Console.WriteLine("Plik w formacie csv, o nazwie '{0}' zostal exportowany", splitted[1]);
             }
-
         }
 
         public void Import(string[] splitted)
@@ -138,37 +137,36 @@ namespace TODO_List.Service
             }
             else
             {
-                var csvContext = GetCsvContext();
-                var csvDescription = GetCsvFileDescription();
-                var imported = csvContext.Read<Quest>(splitted[1] + ".csv", csvDescription);
-                foreach (var quest in imported)
+                try
                 {
-                    if (quest.Status == StatusFinish())
+
+                    var csvContext = GetCsvContext();
+                    var csvDescription = GetCsvFileDescription();
+                    var imported = csvContext.Read<Quest>(splitted[1] + ".csv", csvDescription);
+                    foreach (var quest in imported)
                     {
+
                         var New = new Quest
                         {
                             Id = QuestList.Count + 1,
                             Name = quest.Name,
                             DateOfStart = quest.DateOfStart,
                             Status = quest.Status,
-                            DateOfEnd = quest.DateOfEnd,
+                            DateOfEnd = quest.DateOfEnd.HasValue ? DateTime.Now : null,
                         };
+
                         QuestList.Add(New);
                     }
-                    else
-                    {
-                        var New = new Quest
-                        {
-                            Id = QuestList.Count + 1,
-                            Name = quest.Name,
-                            DateOfStart = quest.DateOfStart,
-                            Status = quest.Status,
-                        };
-                        QuestList.Add(New);
-                    }
+
                 }
-                Console.WriteLine("Plik w formacie csv, o nazwie '{0}' zostal importowany", splitted[1]);
+                catch (Exception)
+                {
+                    Console.WriteLine("Nie mozna otworzyc pliku o nazwie {0}", splitted[1]);
+                }
+                    Console.WriteLine("Plik w formacie csv, o nazwie '{0}' zostal importowany", splitted[1]);
             }
+
+
         }
 
         public static void Error()
@@ -191,20 +189,12 @@ namespace TODO_List.Service
                 ? splitted
                 : new string[] { string.Empty };
         }
-
-        public string StatusInProgres()
+        private readonly Dictionary<QuestStatus, string> Dictonary = new()
         {
-            return "W trakcie";
-        }
+            { QuestStatus.New, "Nowy" },
+            { QuestStatus.InProgres, "W Trakcie" },
+            { QuestStatus.Completed, "Zakonczony" }
+     };
 
-        public string StatusFinish()
-        {
-            return "Zakonczony";
-        }
-
-        public string StatusNew()
-        {
-            return "Nowy";
-        }
     }
 }

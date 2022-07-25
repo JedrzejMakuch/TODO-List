@@ -24,6 +24,14 @@ namespace TODO_List
         public int Id { get; set; }
 
         [CsvColumn(Name = "Status", FieldIndex = 3)]
-        public string Status { get; set; }
+        public QuestStatus Status { get; set; }
+      
     }
+    public enum QuestStatus
+    {
+        New,
+        InProgres,
+        Completed
+    }
+    
 }
